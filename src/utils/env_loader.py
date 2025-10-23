@@ -10,5 +10,6 @@ def load_env():
         "DB_PASSWORD": os.getenv("DB_PASSWORD"),
         "DB_HOST": os.getenv("DB_HOST"),
         "DB_PORT": os.getenv("DB_PORT", "5432"),
+        "DB_PATH": os.getenv("DB_PATH", ""),
     }
     return config
