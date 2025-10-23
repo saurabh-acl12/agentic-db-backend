@@ -23,7 +23,8 @@ def query_db(request: QueryRequest):
             return {"sql": sql}
 
         
-        return {"sql": sql}  # Return top 20 rows
+        result = execute_sql(sql)
+        return {"sql": sql, "result": result[:20]}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
