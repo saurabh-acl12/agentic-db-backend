@@ -16,6 +16,7 @@ class QueryRequest(BaseModel):
 @app.post("/query")
 def query_db(request: QueryRequest):
     try:
+        print("Question:", request.question)
         sql = generate_sql(request.question)
         print("🧠 Generated SQL:\n", sql)
 
