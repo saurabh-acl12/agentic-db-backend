@@ -16,13 +16,14 @@ class QueryRequest(BaseModel):
 @app.post("/query")
 def query_db(request: QueryRequest):
     try:
+        print("Question:", request.question)
         sql = generate_sql(request.question)
         print("🧠 Generated SQL:\n", sql)
 
         if not request.execute:
             return {"sql": sql}
 
-        
+
         result = execute_sql(sql)
         return {"sql": sql, "result": result[:20]}
 
