@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered DB Agent</title>
+    <style>
+        :root {
+            --primary-color: #0052cc;
+            --secondary-color: #f4f5f7;
+            --text-color: #172b4d;
+            --border-color: #dfe1e6;
+            --header-bg: #fff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+        .header {
+            background-color: var(--header-bg);
+            padding: 1em 2em;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+        .logo img {
+            height: 24px;
+            margin-right: 0.5em;
+        }
+        .main-container {
+            display: flex;
+            padding: 2em;
+            gap: 2em;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .left-panel {
+            flex: 2;
+        }
+        .right-panel {
+            flex: 3;
+            min-width: 0;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 2em;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2em;
+        }
+        h2 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5em;
+        }
+        #query-form {
+            display: flex;
+            gap: 1em;
+            margin-bottom: 1em;
+        }
+        #question {
+            flex-grow: 1;
+            padding: 0.8em;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        input[type="submit"] {
+            padding: 0.8em 1.5em;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover {
+            background-color: #003e99;
+        }
+        .example-questions ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            gap: 1em;
+            flex-wrap: wrap;
+        }
+        .example-questions li {
+            cursor: pointer;
+            padding: 0.5em 1em;
+            border-radius: 4px;
+            background-color: var(--secondary-color);
+            transition: background-color 0.3s;
+        }
+        .example-questions li:hover {
+            background-color: #e2e4e8;
+        }
+        #sql-query {
+            background-color: var(--secondary-color);
+            padding: 1em;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        #result-container {
+            overflow-x: auto;
+        }
+        #result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+        #result-table th, #result-table td {
+            padding: 0.8em;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        #result-table th {
+            background-color: var(--secondary-color);
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2em auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .footer {
+            text-align: center;
+            padding: 1em;
+            background-color: var(--header-bg);
+            border-top: 1px solid var(--border-color);
+            margin-top: 2em;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTIgM2MtNC40MTggMC04IDEuNzkxLTggNHMzLjU4MiA0IDggNCA4LTEuNzkxIDgtNC0zLjU4Mi00LTgtNHptMCA2Yy0zLjMxNCAwLTYtMS4zNDMtNi0zczIuNjg2LTMgNi0zIDYgMS4zNDMgNiAzLTIuNjg2IDMtNiAzem0wIDJjLTQuNDE4IDAtOCAxLjc5MS04IDRzMy41ODIgNCA4IDQgOC0xLjc5MSA4LTQtMy41ODItNC04LTR6bTAgNmMtMy4zMTQgMC02LTEuMzQzLTYtM3MyLjY4Ni0zIDYtMyA2IDEuMzQzIDYgMy0yLjY4NiAzLTYgM3ptMCAyYy00LjQxOCAwLTggMS43OTEtOCA0czMuNTgyIDQgOCA0IDgtMS43OTEgOC00LTMuNTgyLTQtOC00em0wIDZjLTMuMzE0IDAtNi0xLjM0My02LTNzMi42ODYtMyA2LTMgNiAxLjM0MyA2IDMtMi42ODYgMy02IDN6Ii8+PC9zdmc+" alt="Logo">
+            <span>AI DB Agent</span>
+        </div>
+        <h1>Natural Language to SQL</h1>
+    </header>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="card">
+                <h2>Ask a Question</h2>
+                <p>Use natural language to query the database. The AI will translate your question into SQL and fetch the data.</p>
+                <form id="query-form">
+                    <input type="text" id="question" name="question" placeholder="e.g., Show me all courses" required>
+                    <input type="submit" value="Query">
+                </form>
+                <div class="example-questions">
+                    <ul>
+                        <li onclick="setQuestion('Show me all courses')">Show me all courses</li>
+                        <li onclick="setQuestion('How many users are there?')">How many users?</li>
+                        <li onclick="setQuestion('Show me all students')">Show all students</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card" id="sql-section" style="display:none;">
+                <h2>Generated SQL</h2>
+                <pre id="sql-query"></pre>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="card" id="result-section" style="display:none;">
+                <h2>Result</h2>
+                <div id="result-container">
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Your Company. All rights reserved.</p>
+    </footer>
+
+    <script>
+    function setQuestion(question) {
+        document.getElementById('question').value = question;
+    }
+
+    document.getElementById('query-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const question = document.getElementById('question').value.trim();
+        const sqlSection = document.getElementById('sql-section');
+        const resultSection = document.getElementById('result-section');
+        const sqlQueryContainer = document.getElementById('sql-query');
+        const resultContainer = document.getElementById('result-container');
+
+        sqlSection.style.display = 'block';
+        resultSection.style.display = 'block';
+        sqlQueryContainer.textContent = 'Loading...';
+        resultContainer.innerHTML = '<div class="loader"></div>';
+
+        fetch('/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ question: question }),
+        })
+        .then(async (response) => {
+            const data = await response.json();
+
+            if (!response.ok) {
+                // 🧠 Handle HTTP errors gracefully
+                throw new Error(data.detail || "Something went wrong. Please try again.");
+            }
+
+            // ✅ Show generated SQL
+            sqlQueryContainer.textContent = data.sql || "No SQL generated.";
+
+            // ✅ Render results if any
+            if (data.result && data.result.length > 0) {
+                const table = document.createElement('table');
+                table.id = 'result-table';
+                const thead = document.createElement('thead');
+                const tbody = document.createElement('tbody');
+                const headers = Object.keys(data.result[0]);
+                const headerRow = document.createElement('tr');
+
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                data.result.forEach(rowData => {
+                    const row = document.createElement('tr');
+                    headers.forEach(header => {
+                        const td = document.createElement('td');
+                        td.textContent = rowData[header];
+                        row.appendChild(td);
+                    });
+                    tbody.appendChild(row);
+                });
+
+                table.appendChild(tbody);
+                resultContainer.innerHTML = '';
+                resultContainer.appendChild(table);
+            } else {
+                resultContainer.innerHTML = '<p>No results found.</p>';
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+
+            // ❌ Display friendly error message
+            sqlQueryContainer.textContent = 'Error';
+            resultContainer.innerHTML = `
+                <div style="
+                    background-color: #ffe5e5;
+                    color: #b71c1c;
+                    border: 1px solid #f44336;
+                    border-radius: 4px;
+                    padding: 1em;
+                    margin-top: 1em;
+                ">
+                    <strong>⚠️ ${error.message}</strong>
+                </div>
+            `;
+        });
+    });
+</script>
+
+</body>
+</html> 

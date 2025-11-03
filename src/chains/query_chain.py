@@ -1,7 +1,18 @@
 from langchain_core.prompts import PromptTemplate
 
+INTENT_PROMPT_TEMPLATE = """
+You are a classification assistant.
+Determine if the user's question can be answered using SQL over a Learning Management System (LMS) database
+that contains information about courses, users, enrollments, grades, submissions, and discussions.
+
+If the question is meaningful and relevant, reply exactly "YES".
+If the question is unclear, unrelated, or nonsensical, reply exactly "NO".
+
+Question: "{question}"
+"""
+
 SQL_PROMPT_TEMPLATE = """
-You are an expert SQL developer and database query optimizer.
+You are an expert SQL assistant for a Learning Management System database.
 
 Given the following database schema:
 {schema}
@@ -43,8 +54,22 @@ Ensure that similar questions produce:
 - Consistent JOIN ordering
 - Stable clause order (SELECT → FROM → JOIN → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT)
 
+===== Domain Vocabulary Reference =====
+The LMS database uses the following standard terms:
+- learner, student, pupil → role = 'Student'
+- instructor, teacher → role = 'Teacher'
+- course, subject, class → canvas_course
+- user, person → canvas_user
+- grade, score, marks → canvas_gradebook
+- submission, assignment → canvas_submissions
+- discussion, reply → canvas_discussions
+When the user's question uses any synonym, map it to the correct schema term/value.
+
 Your entire response must contain only the SQL query.
 """
+
+def get_intent_prompt():
+    return PromptTemplate.from_template(INTENT_PROMPT_TEMPLATE)
 
 
 def get_sql_prompt():
