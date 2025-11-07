@@ -1,7 +1,8 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from src.chains.query_chain import get_intent_prompt, get_sql_prompt
-from src.db.connection import get_connection
+from src.db.connection import get_connection, get_maria_connection
 import re
+
 
 def clean_sql_output(raw_sql: str) -> str:
     """
@@ -12,6 +13,7 @@ def clean_sql_output(raw_sql: str) -> str:
     cleaned = re.sub(r"```sql|```", "", cleaned, flags=re.IGNORECASE)
     cleaned = cleaned.strip()
     return cleaned
+
 
 def is_sql_like(text: str) -> bool:
     """Quick sanity check to avoid executing junk."""
@@ -42,6 +44,7 @@ def get_sql_agent(schema_description: str):
 
     return process_question
 
+
 def execute_sql(query: str):
     conn = get_connection()
     cursor = conn.cursor()
@@ -49,3 +52,19 @@ def execute_sql(query: str):
     rows = cursor.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+def execute_mariadb_sql(query: str):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(query)
+    if cur.description:  # SELECT-like
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        conn.close()
+        return rows
+    else:
+        conn.commit()
+        affected = cur.rowcount
+        conn.close()
+        return {"affected": affected}
