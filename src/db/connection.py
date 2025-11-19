@@ -1,8 +1,10 @@
 import sqlite3
 import mariadb
 import os
+import logging
 from src.utils.env_loader import load_env
 
+logger = logging.getLogger(__name__)
 config = load_env()
 
 
@@ -11,6 +13,7 @@ def get_connection():
     db_path = config.get("DB_PATH", "./db.sqlite")
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row  # optional: makes rows dict-like
+    logger.info(f"✅ Successfully connected to SQLite database at: {db_path}")
     return conn
 
 
@@ -23,7 +26,9 @@ def get_maria_connection():
         "port": int(config.get("DB_PORT", 3306)),
         "database": config.get("DB_NAME", "test"),
     }
-    return mariadb.connect(**params)
+    conn = mariadb.connect(**params)
+    logger.info(f"✅ Successfully connected to MariaDB database '{params['database']}' at {params['host']}:{params['port']} as user '{params['user']}'")
+    return conn
 
 
 def get_schema_description():
@@ -77,3 +82,21 @@ def get_mariadb_schema_description():
 
     conn.close()
     return "\n".join([f"{table}: {', '.join(cols)}" for table, cols in schema.items()])
+
+
+def get_db_connection():
+    """Return a database connection based on DB_TYPE from config."""
+    db_type = config.get("DB_TYPE", "sqlite").lower()
+    if db_type == "mariadb" or db_type == "mysql":
+        return get_maria_connection()
+    else:
+        return get_connection()
+
+
+def get_db_schema_description():
+    """Fetch table + column info based on DB_TYPE from config."""
+    db_type = config.get("DB_TYPE", "sqlite").lower()
+    if db_type == "mariadb" or db_type == "mysql":
+        return get_mariadb_schema_description()
+    else:
+        return get_schema_description()

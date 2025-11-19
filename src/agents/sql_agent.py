@@ -1,7 +1,10 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from src.chains.query_chain import get_intent_prompt, get_sql_prompt
 from src.db.connection import get_connection, get_maria_connection
+from src.utils.env_loader import load_env
 import re
+
+config = load_env()
 
 
 def clean_sql_output(raw_sql: str) -> str:
@@ -55,7 +58,7 @@ def execute_sql(query: str):
 
 
 def execute_mariadb_sql(query: str):
-    conn = get_connection()
+    conn = get_maria_connection()
     cur = conn.cursor()
     cur.execute(query)
     if cur.description:  # SELECT-like
@@ -68,3 +71,12 @@ def execute_mariadb_sql(query: str):
         affected = cur.rowcount
         conn.close()
         return {"affected": affected}
+
+
+def execute_sql_query(query: str):
+    """Execute SQL query based on DB_TYPE from config."""
+    db_type = config.get("DB_TYPE", "sqlite").lower()
+    if db_type == "mariadb" or db_type == "mysql":
+        return execute_mariadb_sql(query)
+    else:
+        return execute_sql(query)

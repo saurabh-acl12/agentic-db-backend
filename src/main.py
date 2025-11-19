@@ -2,15 +2,22 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from src.db.connection import get_schema_description
-from src.agents.sql_agent import get_sql_agent, execute_sql
+import logging
+from src.db.connection import get_db_schema_description
+from src.agents.sql_agent import get_sql_agent, execute_sql_query
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 app = FastAPI(title="AI SQL Agent (Gemini + LangChain + FastAPI)")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Load schema once at startup
-schema_description = get_schema_description()
+schema_description = get_db_schema_description()
 generate_sql = get_sql_agent(schema_description)
 
 class QueryRequest(BaseModel):
@@ -35,7 +42,7 @@ def query_db(request: QueryRequest):
             return {"sql": sql}
 
         
-        result = execute_sql(sql['sql'])
+        result = execute_sql_query(sql['sql'])
         return {"sql": sql['sql'], "result": result}
 
     except Exception as e:
