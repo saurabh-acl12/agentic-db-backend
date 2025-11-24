@@ -171,9 +171,9 @@
                 </form>
                 <div class="example-questions">
                     <ul>
-                        <li onclick="setQuestion('Show me all courses')">Show me all courses</li>
+                        <li onclick="setQuestion('Show me all the clients')">Show me all the clients</li>
                         <li onclick="setQuestion('How many users are there?')">How many users?</li>
-                        <li onclick="setQuestion('Show me all students')">Show all students</li>
+                        <li onclick="setQuestion('How many projects we have?')">How many projects we have?</li>
                     </ul>
                 </div>
             </div>
@@ -183,13 +183,30 @@
             </div>
         </div>
         <div class="right-panel">
-            <div class="card" id="result-section" style="display:none;">
-                <h2>Result</h2>
-                <div id="result-container">
-                    <div class="loader"></div>
-                </div>
-            </div>
+    <div class="card" id="result-section" style="display:none;">
+        <h2 style="display:flex; justify-content:space-between; align-items:center;">
+            Result
+
+            <!-- Copy Button -->
+            <button id="copy-btn" onclick="copyResult()" style="
+                padding:6px 12px;
+                cursor:pointer;
+                background:#4CAF50;
+                color:white;
+                border:none;
+                border-radius:4px;
+                font-size:14px;
+            ">
+                Copy
+            </button>
+        </h2>
+
+        <div id="result-container">
+            <div class="loader"></div>
         </div>
+    </div>
+</div>
+
     </div>
 
     <footer class="footer">
@@ -197,6 +214,25 @@
     </footer>
 
     <script>
+
+    function copyResult() {
+    const resultText = document.getElementById("result-container").innerText.trim();
+
+    if (!resultText) {
+        alert("Nothing to copy!");
+        return;
+    }
+
+    navigator.clipboard.writeText(resultText)
+        .then(() => {
+            alert("Copied to clipboard!");
+        })
+        .catch(err => {
+            console.error("Copy failed: ", err);
+            alert("Failed to copy.");
+        });
+}
+
     function setQuestion(question) {
         document.getElementById('question').value = question;
     }
