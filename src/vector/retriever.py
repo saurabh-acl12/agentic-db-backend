@@ -20,7 +20,8 @@ def retrieve_context(query: str, limit: int = 4):
     )
     # Extract content from results
     chunks = []
-    for doc in results.get("documents", []):
-        chunks.append(doc)
+    for doc_list in results.get("documents", []):
+        if doc_list:
+            chunks.extend(doc_list)
 
     return "\n\n".join(chunks) if chunks else ""
