@@ -27,7 +27,9 @@ def get_maria_connection():
         "database": config.get("DB_NAME", "test"),
     }
     conn = mariadb.connect(**params)
-    logger.info(f"✅ Successfully connected to MariaDB database '{params['database']}' at {params['host']}:{params['port']} as user '{params['user']}'")
+    logger.info(
+        f"✅ Successfully connected to MariaDB database '{params['database']}' at {params['host']}:{params['port']} as user '{params['user']}'"
+    )
     return conn
 
 
@@ -64,12 +66,14 @@ def get_mariadb_schema_description():
     cur = conn.cursor()
 
     # 1. Get tables
-    cur.execute("""
-        SELECT TABLE_NAME 
-        FROM INFORMATION_SCHEMA.TABLES 
+    cur.execute(
+        """
+        SELECT TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA = DATABASE()
         ORDER BY TABLE_NAME;
-    """)
+    """
+    )
     tables = [r[0] for r in cur.fetchall()]
 
     schema_blocks = []
@@ -78,13 +82,16 @@ def get_mariadb_schema_description():
         block = [f"TABLE: {table}"]
 
         # 2. Columns
-        cur.execute("""
-            SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY 
+        cur.execute(
+            """
+            SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY
             FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE() 
+            WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = %s
             ORDER BY ORDINAL_POSITION;
-        """, (table,))
+        """,
+            (table,),
+        )
         columns = cur.fetchall()
 
         block.append("COLUMNS:")
@@ -95,8 +102,9 @@ def get_mariadb_schema_description():
                 block.append(f"  - {col} ({ctype})")
 
         # 3. Foreign Keys
-        cur.execute("""
-            SELECT 
+        cur.execute(
+            """
+            SELECT
                 COLUMN_NAME,
                 REFERENCED_TABLE_NAME,
                 REFERENCED_COLUMN_NAME
@@ -104,20 +112,21 @@ def get_mariadb_schema_description():
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = %s
               AND REFERENCED_TABLE_NAME IS NOT NULL;
-        """, (table,))
+        """,
+            (table,),
+        )
 
         fkeys = cur.fetchall()
         if fkeys:
             block.append("FOREIGN_KEYS:")
             for fk in fkeys:
-                block.append(
-                    f"  - {fk[0]} → {fk[1]}.{fk[2]}"
-                )
+                block.append(f"  - {fk[0]} → {fk[1]}.{fk[2]}")
 
         schema_blocks.append("\n".join(block))
 
     conn.close()
     return "\n\n".join(schema_blocks)
+
 
 def fetch_sample_rows(limit=5):
     """Fetches sample records for each table based on DB_TYPE."""

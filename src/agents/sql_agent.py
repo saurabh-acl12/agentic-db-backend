@@ -62,10 +62,8 @@ def get_sql_agent(schema_description: str):
         if not is_sql_like(sql):
             return {"error": "Unable to generate SQL for that question."}
 
-        return {
-            "sql": sql,
-            "context_used": rag_context  # optional for debugging, remove in prod
-        }
+        return {"sql": sql, "context_used": rag_context}  # optional for debugging, remove in prod
+
     return process_question
 
 
