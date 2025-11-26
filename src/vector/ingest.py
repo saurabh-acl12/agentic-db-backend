@@ -9,23 +9,26 @@ sys.path.insert(0, str(project_root))
 import uuid
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from qdrant_client.models import PointStruct
+# Chromadb does not use PointStruct; embeddings will be stored directly
 
-from qdrant_con import get_qdrant_client
+from src.vector.chroma_con import get_chroma_client
 from src.db.connection import get_db_schema_description, fetch_sample_rows
 
 def ingest():
-    client = get_qdrant_client()
+    # Initialize Chromadb client and collection
+    client = get_chroma_client()
+    collection = client.get_or_create_collection(name="pmc_chunks")
 
+    # Gather schema and sample data
     schema_text = get_db_schema_description()
     sample_text = fetch_sample_rows()
 
-    
     documents = [
         "SCHEMA:\n" + schema_text,
         "SAMPLES:\n" + sample_text,
     ]
 
+    # Split documents into chunks
     splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=100)
     chunks = []
     for doc in documents:
@@ -33,23 +36,26 @@ def ingest():
 
     embedder = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
-    points = []
+    # Prepare data for Chromadb
+    ids = []
+    embeddings = []
+    metadatas = []
+    docs = []
     for chunk in chunks:
-        vector = embedder.embed_query(chunk)
-        points.append(
-            PointStruct(
-                id=str(uuid.uuid4()),
-                vector=vector,
-                payload={"content": chunk}
-            )
-        )
+        ids.append(str(uuid.uuid4()))
+        embeddings.append(embedder.embed_query(chunk))
+        metadatas.append({"content": chunk})
+        docs.append(chunk)
 
-    client.upsert(
-        collection_name="pmc_chunks",
-        points=points
+    # Add to collection
+    collection.add(
+        ids=ids,
+        embeddings=embeddings,
+        metadatas=metadatas,
+        documents=docs
     )
 
-    print("Database → Qdrant ingestion completed successfully!")
+    print("Database → Chromadb ingestion completed successfully!")
 
 if __name__ == "__main__":
     ingest()
