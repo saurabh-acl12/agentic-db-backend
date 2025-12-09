@@ -155,6 +155,23 @@
         border-top: 1px solid var(--border-color);
         margin-top: 2em;
       }
+      .rate-btn {
+        padding: 0.5em 1em;
+        border: 1px solid var(--border-color);
+        background: white;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+      }
+      .rate-btn:hover {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+      .rate-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
@@ -239,6 +256,26 @@
             <div class="loader"></div>
           </div>
         </div>
+
+        <!-- Rating Section -->
+        <div class="card" id="rating-section" style="display: none; margin-top: 2em;">
+          <h2>Rate this Result</h2>
+          <p>Was this answer helpful? (1 = Poor, 10 = Excellent)</p>
+          <div style="display: flex; gap: 0.5em; flex-wrap: wrap; margin-bottom: 1em;">
+            <!-- Generate buttons 1-10 -->
+            <button class="rate-btn" onclick="submitRating(1)">1</button>
+            <button class="rate-btn" onclick="submitRating(2)">2</button>
+            <button class="rate-btn" onclick="submitRating(3)">3</button>
+            <button class="rate-btn" onclick="submitRating(4)">4</button>
+            <button class="rate-btn" onclick="submitRating(5)">5</button>
+            <button class="rate-btn" onclick="submitRating(6)">6</button>
+            <button class="rate-btn" onclick="submitRating(7)">7</button>
+            <button class="rate-btn" onclick="submitRating(8)">8</button>
+            <button class="rate-btn" onclick="submitRating(9)">9</button>
+            <button class="rate-btn" onclick="submitRating(10)">10</button>
+          </div>
+          <div id="rating-message" style="font-weight: bold; color: var(--primary-color);"></div>
+        </div>
       </div>
     </div>
 
@@ -266,6 +303,44 @@
             console.error("Copy failed: ", err);
             alert("Failed to copy.");
           });
+      }
+
+      let currentQueryId = null;
+
+      function submitRating(rating) {
+        if (!currentQueryId) return;
+
+        const ratingSection = document.getElementById("rating-section");
+        const messageDiv = document.getElementById("rating-message");
+
+        // Visual feedback immediately
+        messageDiv.textContent = "Submitting feedback...";
+
+        fetch("/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query_id: currentQueryId, rating: rating })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                let msg = "Thank you!";
+                if (rating >= 9) msg += " (Verified & Cached)";
+                else if (rating >= 7) msg += " (Sent for Review)";
+                else msg += " (Feedback Recorded)";
+
+                messageDiv.textContent = msg;
+
+                // Disable buttons
+                document.querySelectorAll(".rate-btn").forEach(btn => btn.disabled = true);
+            } else {
+                messageDiv.textContent = "Error saving feedback.";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            messageDiv.textContent = "Error submitting feedback.";
+        });
       }
 
       function setQuestion(question) {
@@ -306,6 +381,21 @@
 
               // ✅ Show generated SQL
               sqlQueryContainer.textContent = data.sql || "No SQL generated.";
+
+              // Store query ID for feedback
+              currentQueryId = data.query_id;
+
+              // Show rating section
+              document.getElementById("rating-section").style.display = "block";
+              document.getElementById("rating-message").textContent = "";
+              document.querySelectorAll(".rate-btn").forEach(btn => {
+                  btn.disabled = false;
+                  btn.style.opacity = "1";
+              });
+
+              if (data.cached) {
+                  sqlQueryContainer.textContent += "\n\n(Served from Cache ⚡)";
+              }
 
               // ✅ Render results if any
               if (data.result && data.result.length > 0) {

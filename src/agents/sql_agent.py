@@ -3,6 +3,7 @@ from src.chains.query_chain import get_intent_prompt, get_sql_prompt
 from src.db.connection import get_connection, get_maria_connection
 from src.utils.env_loader import load_env
 from src.vector.retriever import retrieve_context
+from src.db.feedback import get_cached_query
 
 import re
 
@@ -31,6 +32,13 @@ def get_sql_agent(schema_description: str):
     sql_prompt = get_sql_prompt()
 
     def process_question(question: str):
+        # STEP 0 – Check semantic cache
+    def process_question(question: str):
+        # STEP 0 – Check semantic cache
+        cached_sql = get_cached_query(question)
+        if cached_sql:
+            return {"sql": cached_sql, "cached": True}
+
         # STEP 1 – Intent validation
         intent_response = llm.invoke(intent_prompt.format(question=question))
         intent = intent_response.content.strip().upper()
