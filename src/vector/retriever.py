@@ -1,12 +1,12 @@
 from src.vector.chroma_con import get_chroma_client
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from src.llm.factory import get_embeddings
 
-embed = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+embed = get_embeddings()
 
 def retrieve_context(query: str, limit: int = 4):
     client = get_chroma_client()
     collection = client.get_or_create_collection(name="pmc_chunks")
-    embedder = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embedder = get_embeddings()
 
     # Step 1: embed query
     vector = embedder.embed_query(query)

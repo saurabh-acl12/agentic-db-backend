@@ -8,7 +8,7 @@ sys.path.insert(0, str(project_root))
 
 import uuid
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from src.llm.factory import get_embeddings
 # Chromadb does not use PointStruct; embeddings will be stored directly
 
 from src.vector.chroma_con import get_chroma_client
@@ -34,7 +34,7 @@ def ingest():
     for doc in documents:
         chunks.extend(splitter.split_text(doc))
 
-    embedder = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embedder = get_embeddings()
 
     # Prepare data for Chromadb
     ids = []

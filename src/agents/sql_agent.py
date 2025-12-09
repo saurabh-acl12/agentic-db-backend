@@ -1,4 +1,4 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+from src.llm.factory import get_llm
 from src.chains.query_chain import get_intent_prompt, get_sql_prompt
 from src.db.connection import get_connection, get_maria_connection
 from src.utils.env_loader import load_env
@@ -27,12 +27,10 @@ def is_sql_like(text: str) -> bool:
 
 
 def get_sql_agent(schema_description: str):
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+    llm = get_llm()
     intent_prompt = get_intent_prompt()
     sql_prompt = get_sql_prompt()
 
-    def process_question(question: str):
-        # STEP 0 – Check semantic cache
     def process_question(question: str):
         # STEP 0 – Check semantic cache
         cached_sql = get_cached_query(question)
