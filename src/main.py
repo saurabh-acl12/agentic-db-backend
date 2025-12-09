@@ -17,7 +17,13 @@ app = FastAPI(title="AI SQL Agent (Gemini + LangChain + FastAPI)")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Load schema once at startup
-schema_description = get_db_schema_description()
+try:
+    schema_description = get_db_schema_description()
+except Exception as e:
+    logging.warning(f"Could not load DB schema: {e}")
+    schema_description = ""  # fallback empty schema
+
+# Initialize SQL agent with the (possibly empty) schema description
 generate_sql = get_sql_agent(schema_description)
 
 class QueryRequest(BaseModel):
@@ -41,7 +47,7 @@ def query_db(request: QueryRequest):
         if not request.execute:
             return {"sql": sql}
 
-        
+
         result = execute_sql_query(sql['sql'])
         return {"sql": sql['sql'], "result": result}
 

@@ -2,6 +2,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from src.chains.query_chain import get_intent_prompt, get_sql_prompt
 from src.db.connection import get_connection, get_maria_connection
 from src.utils.env_loader import load_env
+from src.vector.retriever import retrieve_context
+
 import re
 
 config = load_env()
@@ -36,14 +38,31 @@ def get_sql_agent(schema_description: str):
         if not intent.startswith("YES"):
             return {"error": "Invalid or unclear question. Please rephrase."}
 
-        # STEP 2 – SQL generation
-        sql_response = llm.invoke(sql_prompt.format(schema=schema_description, question=question))
-        sql = clean_sql_output(sql_response.content)
+        # STEP 2 – Retrieve semantic RAG context (vector search from Qdrant)
+        rag_context = retrieve_context(question)
 
-        if "INVALID QUESTION" in sql or not is_sql_like(sql):
+        # STEP 3 – Build enhanced SQL prompt with context
+        full_prompt = (
+            sql_prompt.format(schema=schema_description, question=question)
+            + "\n\n# RAG_CONTEXT (highly relevant schema fragments):\n"
+            + rag_context
+            + "\n# Use ONLY columns and tables found in SCHEMA or RAG_CONTEXT."
+        )
+
+        # STEP 4 – SQL generation
+        sql_response = llm.invoke(full_prompt)
+        raw_sql = sql_response.content
+
+        sql = clean_sql_output(raw_sql)
+
+        # STEP 5 – Validate SQL
+        if "INVALID QUESTION" in sql.upper():
+            return {"error": "Unable to interpret the question correctly."}
+
+        if not is_sql_like(sql):
             return {"error": "Unable to generate SQL for that question."}
 
-        return {"sql": sql}
+        return {"sql": sql, "context_used": rag_context}  # optional for debugging, remove in prod
 
     return process_question
 
