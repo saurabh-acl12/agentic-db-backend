@@ -56,4 +56,4 @@ uvicorn==0.38.0
 xxhash==3.6.0
 zstandard==0.25.0
 chromadb>=0.4.0
-langchain-ollama==0.2.0
+

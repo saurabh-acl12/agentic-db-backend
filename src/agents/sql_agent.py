@@ -1,5 +1,5 @@
 from src.llm.factory import get_llm
-from src.chains.query_chain import get_intent_prompt, get_sql_prompt
+from src.chains.query_chain import get_unified_prompt
 from src.db.connection import get_connection, get_maria_connection
 from src.utils.env_loader import load_env
 from src.vector.retriever import retrieve_context
@@ -28,8 +28,7 @@ def is_sql_like(text: str) -> bool:
 
 def get_sql_agent(schema_description: str):
     llm = get_llm()
-    intent_prompt = get_intent_prompt()
-    sql_prompt = get_sql_prompt()
+    unified_prompt = get_unified_prompt()
 
     def process_question(question: str):
         # STEP 0 – Check semantic cache
@@ -37,38 +36,64 @@ def get_sql_agent(schema_description: str):
         if cached_sql:
             return {"sql": cached_sql, "cached": True}
 
-        # STEP 1 – Intent validation
-        intent_response = llm.invoke(intent_prompt.format(question=question))
-        intent = intent_response.content.strip().upper()
-
-        if not intent.startswith("YES"):
-            return {"error": "Invalid or unclear question. Please rephrase."}
-
-        # STEP 2 – Retrieve semantic RAG context (vector search from Qdrant)
+        # STEP 1 – Retrieve semantic RAG context
         rag_context = retrieve_context(question)
 
-        # STEP 3 – Build enhanced SQL prompt with context
-        full_prompt = (
-            sql_prompt.format(schema=schema_description, question=question)
-            + "\n\n# RAG_CONTEXT (highly relevant schema fragments):\n"
-            + rag_context
-            + "\n# Use ONLY columns and tables found in SCHEMA or RAG_CONTEXT."
+        # STEP 2 – Build unified prompt
+        full_prompt = unified_prompt.format(
+            schema=schema_description,
+            rag_context=rag_context,
+            question=question
         )
 
-        # STEP 4 – SQL generation
-        sql_response = llm.invoke(full_prompt)
-        raw_sql = sql_response.content
+        # STEP 3 – LLM Call
+        response = llm.invoke(full_prompt)
+        content = response.content.strip()
 
-        sql = clean_sql_output(raw_sql)
+        # STEP 4 – Parse JSON
+        try:
+            # Attempt to clean markdown code blocks if present
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
 
-        # STEP 5 – Validate SQL
-        if "INVALID QUESTION" in sql.upper():
-            return {"error": "Unable to interpret the question correctly."}
+            import json
+            data = json.loads(content)
+        except Exception as e:
+            return {"error": f"Failed to parse LLM response: {content}", "details": str(e)}
 
-        if not is_sql_like(sql):
-            return {"error": "Unable to generate SQL for that question."}
+        intent = data.get("intent", "OFF_TOPIC")
 
-        return {"sql": sql, "context_used": rag_context}  # optional for debugging, remove in prod
+        if intent == "SQL_GENERATION":
+            sql = data.get("sql_query")
+            if not sql:
+                return {"error": "LLM identified SQL intent but returned no query."}
+
+            sql = clean_sql_output(sql)
+            if not is_sql_like(sql):
+                return {"error": "Generated SQL is invalid."}
+
+            return {
+                "sql": sql,
+                "intent": intent,
+                "analysis": data.get("analysis"),
+                "context_used": rag_context
+            }
+
+        elif intent == "CLARIFICATION_NEEDED":
+            return {
+                "error": data.get("clarification_needed", "Please clarify your question."),
+                "intent": intent
+            }
+
+        else:
+            # GREETING or OFF_TOPIC
+            return {
+                "error": "I can only answer questions about the database.",
+                "intent": intent,
+                "analysis": data.get("analysis")
+            }
 
     return process_question
 
