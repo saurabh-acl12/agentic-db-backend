@@ -222,6 +222,27 @@
           <h2>Generated SQL</h2>
           <pre id="sql-query"></pre>
         </div>
+
+        <!-- Rating Section -->
+        <div class="card" id="rating-section" style="display: none; margin-top: 2em;">
+          <h2>Rate this Result</h2>
+          <p>Was this answer helpful? (1 = Poor, 10 = Excellent)</p>
+          <div style="display: flex; gap: 0.5em; flex-wrap: wrap; margin-bottom: 1em;">
+            <!-- Generate buttons 1-10 -->
+            <button class="rate-btn" onclick="submitRating(1)">1</button>
+            <button class="rate-btn" onclick="submitRating(2)">2</button>
+            <button class="rate-btn" onclick="submitRating(3)">3</button>
+            <button class="rate-btn" onclick="submitRating(4)">4</button>
+            <button class="rate-btn" onclick="submitRating(5)">5</button>
+            <button class="rate-btn" onclick="submitRating(6)">6</button>
+            <button class="rate-btn" onclick="submitRating(7)">7</button>
+            <button class="rate-btn" onclick="submitRating(8)">8</button>
+            <button class="rate-btn" onclick="submitRating(9)">9</button>
+            <button class="rate-btn" onclick="submitRating(10)">10</button>
+          </div>
+          <div id="rating-message" style="font-weight: bold; color: var(--primary-color);"></div>
+        </div>
+
       </div>
       <div class="right-panel">
         <div class="card" id="result-section" style="display: none">
@@ -257,25 +278,6 @@
           </div>
         </div>
 
-        <!-- Rating Section -->
-        <div class="card" id="rating-section" style="display: none; margin-top: 2em;">
-          <h2>Rate this Result</h2>
-          <p>Was this answer helpful? (1 = Poor, 10 = Excellent)</p>
-          <div style="display: flex; gap: 0.5em; flex-wrap: wrap; margin-bottom: 1em;">
-            <!-- Generate buttons 1-10 -->
-            <button class="rate-btn" onclick="submitRating(1)">1</button>
-            <button class="rate-btn" onclick="submitRating(2)">2</button>
-            <button class="rate-btn" onclick="submitRating(3)">3</button>
-            <button class="rate-btn" onclick="submitRating(4)">4</button>
-            <button class="rate-btn" onclick="submitRating(5)">5</button>
-            <button class="rate-btn" onclick="submitRating(6)">6</button>
-            <button class="rate-btn" onclick="submitRating(7)">7</button>
-            <button class="rate-btn" onclick="submitRating(8)">8</button>
-            <button class="rate-btn" onclick="submitRating(9)">9</button>
-            <button class="rate-btn" onclick="submitRating(10)">10</button>
-          </div>
-          <div id="rating-message" style="font-weight: bold; color: var(--primary-color);"></div>
-        </div>
       </div>
     </div>
 
