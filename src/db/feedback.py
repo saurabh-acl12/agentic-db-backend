@@ -176,6 +176,8 @@ def get_cached_query(question: str, threshold: float = 0.9) -> str | None:
                 cached_sql = results['metadatas'][0][0]['sql']
                 logger.info(f"Cache hit! Distance: {distance}")
                 return cached_sql
+            else:
+                logger.info(f"Non Cache hit! Distance: {distance}")
 
     except Exception as e:
         logger.error(f"Cache lookup failed: {e}")
