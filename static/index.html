@@ -3,364 +3,234 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI-Powered DB Agent</title>
+    <title>AI SQL Chatbot</title>
     <style>
-      :root {
-        --primary-color: #0052cc;
-        --secondary-color: #f4f5f7;
-        --text-color: #172b4d;
-        --border-color: #dfe1e6;
-        --header-bg: #fff;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif;
-        margin: 0;
-        background-color: var(--secondary-color);
-        color: var(--text-color);
-      }
-      .header {
-        background-color: var(--header-bg);
-        padding: 1em 2em;
-        border-bottom: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .header h1 {
-        color: var(--primary-color);
-        margin: 0;
-        font-size: 1.5em;
-      }
-      .logo {
-        display: flex;
-        align-items: center;
-      }
-      .logo img {
-        height: 24px;
-        margin-right: 0.5em;
-      }
-      .main-container {
-        display: flex;
-        padding: 2em;
-        gap: 2em;
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-      .left-panel {
-        flex: 2;
-      }
-      .right-panel {
-        flex: 3;
-        min-width: 0;
-      }
-      .card {
-        background-color: #fff;
-        border-radius: 8px;
-        padding: 2em;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        margin-bottom: 2em;
-      }
-      h2 {
-        margin-top: 0;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 0.5em;
-      }
-      #query-form {
-        display: flex;
-        gap: 1em;
-        margin-bottom: 1em;
-      }
-      #question {
-        flex-grow: 1;
-        padding: 0.8em;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-      }
-      input[type="submit"] {
-        padding: 0.8em 1.5em;
-        border: none;
-        background-color: var(--primary-color);
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
-      input[type="submit"]:hover {
-        background-color: #003e99;
-      }
-      .example-questions ul {
-        list-style: none;
-        padding: 0;
-        display: flex;
-        gap: 1em;
-        flex-wrap: wrap;
-      }
-      .example-questions li {
-        cursor: pointer;
-        padding: 0.5em 1em;
-        border-radius: 4px;
-        background-color: var(--secondary-color);
-        transition: background-color 0.3s;
-      }
-      .example-questions li:hover {
-        background-color: #e2e4e8;
-      }
-      #sql-query {
-        background-color: var(--secondary-color);
-        padding: 1em;
-        border-radius: 4px;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-      #result-container {
-        overflow-x: auto;
-      }
-      #result-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 1em;
-      }
-      #result-table th,
-      #result-table td {
-        padding: 0.8em;
-        text-align: left;
-        border-bottom: 1px solid var(--border-color);
-        white-space: nowrap;
-      }
-      #result-table th {
-        background-color: var(--secondary-color);
-      }
-      .loader {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid var(--primary-color);
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
-        margin: 2em auto;
-      }
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      .footer {
-        text-align: center;
-        padding: 1em;
-        background-color: var(--header-bg);
-        border-top: 1px solid var(--border-color);
-        margin-top: 2em;
-      }
+      :root { --primary: #0b5cff; --bg: #f5f7fb; --card: #ffffff; --text: #1f2933; --muted: #6b7280; --border: #e5e7eb; }
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+      header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+      .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--primary); }
+      .brand svg { height: 28px; width: 28px; }
+      .actions { display: flex; gap: 8px; align-items: center; }
+      button, .btn { border: 1px solid var(--border); background: var(--card); color: var(--text); padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+      button.primary, .btn.primary { background: var(--primary); color: #fff; border: none; }
+      main { max-width: 1200px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); }
+      .chat-window { height: 70vh; display: flex; flex-direction: column; }
+      .messages { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 12px; }
+      .bubble { padding: 12px 14px; border-radius: 12px; max-width: 85%; white-space: pre-wrap; word-wrap: break-word; }
+      .bubble.user { align-self: flex-end; background: #e0e7ff; }
+      .bubble.assistant { align-self: flex-start; background: #f3f4f6; }
+      .meta { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+      .input-row { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+      .input-row input { flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+      .sidebar h3 { margin-top: 0; }
+      pre { background: #0b1627; color: #e5e7eb; padding: 12px; border-radius: 8px; overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th, td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
+      .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 12px; }
+      .chip { background: #eef2ff; color: #4338ca; padding: 8px 10px; border-radius: 999px; cursor: pointer; font-size: 13px; border: 1px solid #e0e7ff; }
+      .chip:hover { background: #e0e7ff; }
+      .sql-block { margin-top: 8px; }
+      .result { max-height: 280px; overflow: auto; }
+      .empty { color: var(--muted); text-align: center; padding: 16px; }
+      @media (max-width: 960px) { main { grid-template-columns: 1fr; } .chat-window { height: 60vh; } }
     </style>
   </head>
   <body>
-    <header class="header">
-      <div class="logo">
-        <img
-          src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTIgM2MtNC40MTggMC04IDEuNzkxLTggNHMzLjU4MiA0IDggNCA4LTEuNzkxIDgtNC0zLjU4Mi00LTgtNHptMCA2Yy0zLjMxNCAwLTYtMS4zNDMtNi0zczIuNjg2LTMgNi0zIDYgMS4zNDMgNiAzLTIuNjg2IDMtNiAzem0wIDJjLTQuNDE4IDAtOCAxLjc5MS04IDRzMy41ODIgNCA4IDQgOC0xLjc5MSA4LTQtMy41ODItNC04LTR6bTAgNmMtMy4zMTQgMC02LTEuMzQzLTYtM3MyLjY4Ni0zIDYtMyA2IDEuMzQzIDYgMy0yLjY4NiAzLTYgM3ptMCAyYy00LjQxOCAwLTggMS43OTEtOCA0czMuNTgyIDQgOCA0IDgtMS43OTEgOC00LTMuNTgyLTQtOC00em0wIDZjLTMuMzE0IDAtNi0xLjM0My02LTNzMi42ODYtMyA2LTMgNiAxLjM0MyA2IDMtMi42ODYgMy02IDN6Ii8+PC9zdmc+"
-          alt="Logo"
-        />
-        <span>AI DB Agent</span>
+    <header>
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 7.5L12 4l8 3.5v4.5c0 4.5-3.4 6.9-8 8-4.6-1.1-8-3.5-8-8V7.5Z" stroke="#0b5cff" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M8 10.5 12 12l4-1.5" stroke="#0b5cff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        AI SQL Chatbot
       </div>
-      <h1>Natural Language to SQL</h1>
+      <div class="actions">
+        <span id="session-label" class="meta"></span>
+        <button id="new-chat" class="btn">New chat</button>
+      </div>
     </header>
 
-    <div class="main-container">
-      <div class="left-panel">
-        <div class="card">
-          <h2>Ask a Question</h2>
-          <p>
-            Use natural language to query the database. The AI will translate
-            your question into SQL and fetch the data.
-          </p>
-          <form id="query-form">
-            <input
-              type="text"
-              id="question"
-              name="question"
-              placeholder="e.g., Show me all courses"
-              required
-            />
-            <input type="submit" value="Query" />
-          </form>
-          <div class="example-questions">
-            <ul>
-              <li onclick="setQuestion('Show me all the clients')">
-                Show me all the clients
-              </li>
-              <li onclick="setQuestion('How many users are there?')">
-                How many users?
-              </li>
-              <li onclick="setQuestion('How many projects we have?')">
-                How many projects we have?
-              </li>
-            </ul>
-          </div>
+    <main>
+      <section class="card chat-window">
+        <div class="meta">Chat about your database. Follow-ups use memory.</div>
+        <div class="chips">
+          <div class="chip" onclick="useExample('Show me all the clients')">Show me all the clients</div>
+          <div class="chip" onclick="useExample('Total workload by month for 2024')">Total workload by month for 2024</div>
+          <div class="chip" onclick="useExample('Which consultants worked on project ACME?')">Which consultants worked on project ACME?</div>
+          <div class="chip" onclick="useExample('Average mission rating per client')">Average mission rating per client</div>
         </div>
-        <div class="card" id="sql-section" style="display: none">
-          <h2>Generated SQL</h2>
-          <pre id="sql-query"></pre>
+        <div id="messages" class="messages"></div>
+        <div class="input-row">
+          <input id="message-input" type="text" placeholder="Ask a question about your data..." />
+          <button id="send-btn" class="primary">Send</button>
         </div>
-      </div>
-      <div class="right-panel">
-        <div class="card" id="result-section" style="display: none">
-          <h2
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            Result
+      </section>
 
-            <!-- Copy Button -->
-            <button
-              id="copy-btn"
-              onclick="copyResult()"
-              style="
-                padding: 6px 12px;
-                cursor: pointer;
-                background: #4caf50;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 14px;
-              "
-            >
-              Copy
-            </button>
-          </h2>
-
-          <div id="result-container">
-            <div class="loader"></div>
-          </div>
+      <section class="card sidebar">
+        <h3>Generated SQL</h3>
+        <div class="sql-block">
+          <pre id="sql-query">Ask a question to see SQL</pre>
         </div>
-      </div>
-    </div>
-
-    <footer class="footer">
-      <p>&copy; 2025 Your Company. All rights reserved.</p>
-    </footer>
+        <h3>Latest result</h3>
+        <div id="result-container" class="result empty">No results yet.</div>
+      </section>
+    </main>
 
     <script>
-      function copyResult() {
-        const resultText = document
-          .getElementById("result-container")
-          .innerText.trim();
+      const messagesEl = document.getElementById("messages");
+      const inputEl = document.getElementById("message-input");
+      const sendBtn = document.getElementById("send-btn");
+      const sqlEl = document.getElementById("sql-query");
+      const resultEl = document.getElementById("result-container");
+      const sessionLabel = document.getElementById("session-label");
+      const newChatBtn = document.getElementById("new-chat");
 
-        if (!resultText) {
-          alert("Nothing to copy!");
+      let sessionId = localStorage.getItem("chatSessionId");
+      let isSending = false;
+
+      const setSessionLabel = () => {
+        sessionLabel.textContent = sessionId ? `Session: ${sessionId.slice(0, 8)}` : "No session";
+      };
+
+      const ensureSession = async () => {
+        if (sessionId) return sessionId;
+        const res = await fetch("/chat/start", { method: "POST" });
+        const data = await res.json();
+        sessionId = data.session_id;
+        localStorage.setItem("chatSessionId", sessionId);
+        setSessionLabel();
+        return sessionId;
+      };
+
+      const formatResult = (result) => {
+        if (!result || result.length === 0) {
+          resultEl.classList.add("empty");
+          resultEl.innerHTML = "No results.";
           return;
         }
-
-        navigator.clipboard
-          .writeText(resultText)
-          .then(() => {
-            alert("Copied to clipboard!");
-          })
-          .catch((err) => {
-            console.error("Copy failed: ", err);
-            alert("Failed to copy.");
+        resultEl.classList.remove("empty");
+        if (Array.isArray(result)) {
+          const table = document.createElement("table");
+          const thead = document.createElement("thead");
+          const tbody = document.createElement("tbody");
+          const headers = Object.keys(result[0]);
+          const headerRow = document.createElement("tr");
+          headers.forEach((h) => {
+            const th = document.createElement("th");
+            th.textContent = h;
+            headerRow.appendChild(th);
           });
-      }
-
-      function setQuestion(question) {
-        document.getElementById("question").value = question;
-      }
-
-      document
-        .getElementById("query-form")
-        .addEventListener("submit", function (event) {
-          event.preventDefault();
-          const question = document.getElementById("question").value.trim();
-          const sqlSection = document.getElementById("sql-section");
-          const resultSection = document.getElementById("result-section");
-          const sqlQueryContainer = document.getElementById("sql-query");
-          const resultContainer = document.getElementById("result-container");
-
-          sqlSection.style.display = "block";
-          resultSection.style.display = "block";
-          sqlQueryContainer.textContent = "Loading...";
-          resultContainer.innerHTML = '<div class="loader"></div>';
-
-          fetch("/query", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ question: question }),
-          })
-            .then(async (response) => {
-              const data = await response.json();
-
-              if (!response.ok) {
-                // 🧠 Handle HTTP errors gracefully
-                throw new Error(
-                  data.detail || "Something went wrong. Please try again."
-                );
-              }
-
-              // ✅ Show generated SQL
-              sqlQueryContainer.textContent = data.sql || "No SQL generated.";
-
-              // ✅ Render results if any
-              if (data.result && data.result.length > 0) {
-                const table = document.createElement("table");
-                table.id = "result-table";
-                const thead = document.createElement("thead");
-                const tbody = document.createElement("tbody");
-                const headers = Object.keys(data.result[0]);
-                const headerRow = document.createElement("tr");
-
-                headers.forEach((header) => {
-                  const th = document.createElement("th");
-                  th.textContent = header;
-                  headerRow.appendChild(th);
-                });
-
-                thead.appendChild(headerRow);
-                table.appendChild(thead);
-
-                data.result.forEach((rowData) => {
-                  const row = document.createElement("tr");
-                  headers.forEach((header) => {
-                    const td = document.createElement("td");
-                    td.textContent = rowData[header];
-                    row.appendChild(td);
-                  });
-                  tbody.appendChild(row);
-                });
-
-                table.appendChild(tbody);
-                resultContainer.innerHTML = "";
-                resultContainer.appendChild(table);
-              } else {
-                resultContainer.innerHTML = "<p>No results found.</p>";
-              }
-            })
-            .catch((error) => {
-              console.error("Error:", error);
-
-              // ❌ Display friendly error message
-              sqlQueryContainer.textContent = "Error";
-              resultContainer.innerHTML = `
-                <div style="
-                    background-color: #ffe5e5;
-                    color: #b71c1c;
-                    border: 1px solid #f44336;
-                    border-radius: 4px;
-                    padding: 1em;
-                    margin-top: 1em;
-                ">
-                    <strong>⚠️ ${error.message}</strong>
-                </div>
-            `;
+          thead.appendChild(headerRow);
+          table.appendChild(thead);
+          result.forEach((row) => {
+            const tr = document.createElement("tr");
+            headers.forEach((h) => {
+              const td = document.createElement("td");
+              td.textContent = row[h];
+              tr.appendChild(td);
             });
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          resultEl.innerHTML = "";
+          resultEl.appendChild(table);
+        } else {
+          resultEl.textContent = JSON.stringify(result, null, 2);
+        }
+      };
+
+      const renderMessages = (history) => {
+        if (!history || history.length === 0) {
+          messagesEl.innerHTML = `<div class="empty">Ask a question to begin.</div>`;
+          return;
+        }
+        const sorted = [...history].sort(
+          (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
+        );
+        messagesEl.innerHTML = "";
+        sorted.forEach((turn) => {
+          const userBubble = document.createElement("div");
+          userBubble.className = "bubble user";
+          userBubble.innerHTML = `<div class="meta">${turn.created_at || ""}</div>${turn.question || ""}`;
+          messagesEl.appendChild(userBubble);
+          if (turn.sql) {
+            const assistantBubble = document.createElement("div");
+            assistantBubble.className = "bubble assistant";
+            assistantBubble.innerHTML = `<div class="meta">SQL</div><code>${turn.sql}</code>`;
+            messagesEl.appendChild(assistantBubble);
+          }
         });
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      };
+
+      const loadHistory = async () => {
+        await ensureSession();
+        const res = await fetch(`/chat/${sessionId}/history?limit=50`);
+        const data = await res.json();
+        renderMessages(data.history || []);
+      };
+
+      const sendMessage = async () => {
+        if (isSending) return;
+        const message = inputEl.value.trim();
+        if (!message) return;
+        isSending = true;
+        sendBtn.textContent = "Sending...";
+
+        await ensureSession();
+
+        try {
+          const res = await fetch("/chat/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId, message }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Request failed");
+          }
+          sqlEl.textContent = data.sql || "No SQL generated.";
+          formatResult(data.result);
+          inputEl.value = "";
+          await loadHistory();
+        } catch (err) {
+          alert(err.message || "Something went wrong");
+        } finally {
+          isSending = false;
+          sendBtn.textContent = "Send";
+        }
+      };
+
+      sendBtn.addEventListener("click", sendMessage);
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      newChatBtn.addEventListener("click", async () => {
+        localStorage.removeItem("chatSessionId");
+        sessionId = null;
+        await ensureSession();
+        messagesEl.innerHTML = `<div class="empty">Started a new chat.</div>`;
+        sqlEl.textContent = "Ask a question to see SQL";
+        resultEl.classList.add("empty");
+        resultEl.textContent = "No results yet.";
+      });
+
+      function useExample(text) {
+        inputEl.value = text;
+        inputEl.focus();
+      }
+
+      (async function init() {
+        await ensureSession();
+        setSessionLabel();
+        await loadHistory();
+      })();
     </script>
   </body>
 </html>

@@ -1,12 +1,30 @@
+from typing import Union, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.language_models.base import BaseLanguageModel
 from src.chains.query_chain import get_intent_prompt, get_sql_prompt
 from src.db.connection import get_connection, get_maria_connection
 from src.utils.env_loader import load_env
 from src.vector.retriever import retrieve_context
+from src.llm.ollama_llm import OllamaLLM
 
 import re
 
 config = load_env()
+
+# Initialize LLM based on configuration
+def get_llm() -> BaseLanguageModel:
+    """Initialize the appropriate LLM based on configuration."""
+    if config.get('USE_OLLAMA', 'false').lower() == 'true':
+        return OllamaLLM(
+            model=config.get('OLLAMA_MODEL', 'gemma3:4b'),
+            temperature=0.1,  # Lower temperature for more deterministic SQL generation
+            max_tokens=1000
+        )
+    else:
+        return ChatGoogleGenerativeAI(
+            model=config.get('GEMINI_MODEL', 'gemini-2.0-flash'),
+            temperature=0.1
+        )
 
 
 def clean_sql_output(raw_sql: str) -> str:
@@ -25,15 +43,19 @@ def is_sql_like(text: str) -> bool:
     return any(k in text.lower() for k in ["select", "from", "where"])
 
 
-def get_sql_agent(schema_description: str):
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+def get_sql_agent(schema_description: str, llm: Optional[BaseLanguageModel] = None):
+    llm = llm or get_llm()
     intent_prompt = get_intent_prompt()
     sql_prompt = get_sql_prompt()
 
-    def process_question(question: str):
+    def process_question(question: str, history_context: str = ""):
+        print("Entered process question")
+        import pdb; pdb.set_trace()
         # STEP 1 – Intent validation
         intent_response = llm.invoke(intent_prompt.format(question=question))
-        intent = intent_response.content.strip().upper()
+        # Handle both string response (Ollama) and ChatMessage (Gemini)
+        intent = (intent_response.content if hasattr(intent_response, 'content') 
+                 else str(intent_response)).strip().upper()
 
         if not intent.startswith("YES"):
             return {"error": "Invalid or unclear question. Please rephrase."}
@@ -46,12 +68,18 @@ def get_sql_agent(schema_description: str):
             sql_prompt.format(schema=schema_description, question=question)
             + "\n\n# RAG_CONTEXT (highly relevant schema fragments):\n"
             + rag_context
+            + (
+                "\n\n# CONVERSATION_CONTEXT (recent chat memory):\n"
+                + history_context
+                if history_context
+                else ""
+            )
             + "\n# Use ONLY columns and tables found in SCHEMA or RAG_CONTEXT."
         )
 
         # STEP 4 – SQL generation
         sql_response = llm.invoke(full_prompt)
-        raw_sql = sql_response.content
+        raw_sql = sql_response.content if hasattr(sql_response, 'content') else str(sql_response)
 
         sql = clean_sql_output(raw_sql)
 
