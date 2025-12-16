@@ -72,6 +72,13 @@ def start_chat():
     return {"session_id": str(uuid.uuid4())}
 
 
+@app.get("/chat/sessions")
+def list_sessions():
+    """List all chat sessions with their most recent activity."""
+    sessions = memory_store.list_sessions()
+    return {"sessions": sessions}
+
+
 @app.get("/chat/{session_id}/history")
 def chat_history(session_id: str, limit: int = 20):
     """Return recent turns for a given session."""

@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI SQL Chatbot</title>
     <style>
-      :root { --primary: #0b5cff; --bg: #f5f7fb; --card: #ffffff; --text: #1f2933; --muted: #6b7280; --border: #e5e7eb; }
+      :root { --primary: #0b5cff; --bg: #f5f7fb; --card: #ffffff; --text: #1f2933; --muted: #6b7280; --border: #e5e7eb; --sidebar-width: 280px; }
       * { box-sizing: border-box; }
-      body { margin: 0; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+      body { margin: 0; font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); display: flex; }
       header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
       .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--primary); }
       .brand svg { height: 28px; width: 28px; }
@@ -34,10 +34,134 @@
       .sql-block { margin-top: 8px; }
       .result { max-height: 280px; overflow: auto; }
       .empty { color: var(--muted); text-align: center; padding: 16px; }
-      @media (max-width: 960px) { main { grid-template-columns: 1fr; } .chat-window { height: 60vh; } }
+      /* Sidebar styles */
+      .sidebar-container {
+        width: var(--sidebar-width);
+        background: var(--card);
+        border-right: 1px solid var(--border);
+        height: 100vh;
+        overflow-y: auto;
+        position: fixed;
+        left: 0;
+        top: 0;
+        padding: 20px;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+        z-index: 1000;
+        transition: transform 0.3s ease;
+      }
+
+      .main-content {
+        flex: 1;
+        margin-left: var(--sidebar-width);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      .sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .sidebar-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: var(--primary);
+      }
+
+      .session-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .session-item {
+        padding: 10px 12px;
+        margin: 5px 0;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-size: 0.9rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .session-item:hover {
+        background-color: #f0f4ff;
+      }
+
+      .session-item.active {
+        background-color: #e6f0ff;
+        font-weight: 500;
+      }
+
+      .session-time {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .toggle-sidebar {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        margin-right: 10px;
+        color: var(--primary);
+      }
+
+      @media (max-width: 1024px) {
+        .sidebar-container {
+          transform: translateX(-100%);
+          width: 80%;
+          max-width: 300px;
+        }
+        
+        .sidebar-container.visible {
+          transform: translateX(0);
+        }
+        
+        .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+        
+        .toggle-sidebar {
+          display: block;
+        }
+      }
+
+      @media (max-width: 960px) { 
+        main { 
+          grid-template-columns: 1fr; 
+          padding: 15px;
+        } 
+        .chat-window { 
+          height: 60vh; 
+        } 
+      }
     </style>
   </head>
   <body>
+    <!-- Sidebar -->
+    <div class="sidebar-container" id="sidebar">
+      <div class="sidebar-header">
+        <h2>Chat Sessions</h2>
+      </div>
+      <button id="new-session-btn" class="btn primary" style="width: 100%; margin-bottom: 15px;">
+        + New Session
+      </button>
+      <ul class="session-list" id="session-list">
+        <!-- Sessions will be added here by JavaScript -->
+      </ul>
+    </div>
+
+    <div class="main-content">
     <header>
       <div class="brand">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -86,6 +210,16 @@
       const resultEl = document.getElementById("result-container");
       const sessionLabel = document.getElementById("session-label");
       const newChatBtn = document.getElementById("new-chat");
+      const sidebar = document.getElementById("sidebar");
+      const toggleSidebarBtn = document.createElement("button");
+      toggleSidebarBtn.className = "toggle-sidebar";
+      toggleSidebarBtn.innerHTML = "☰";
+      toggleSidebarBtn.onclick = () => sidebar.classList.toggle("visible");
+      document.querySelector(".brand").prepend(toggleSidebarBtn);
+      
+      // Session management
+      const sessionList = document.getElementById("session-list");
+      const newSessionBtn = document.getElementById("new-session-btn");
 
       let sessionId = localStorage.getItem("chatSessionId");
       let isSending = false;
@@ -212,13 +346,14 @@
       });
 
       newChatBtn.addEventListener("click", async () => {
-        localStorage.removeItem("chatSessionId");
-        sessionId = null;
-        await ensureSession();
+        await createNewSession();
         messagesEl.innerHTML = `<div class="empty">Started a new chat.</div>`;
         sqlEl.textContent = "Ask a question to see SQL";
         resultEl.classList.add("empty");
         resultEl.textContent = "No results yet.";
+        
+        // Update the sessions list to show the new session as active
+        await loadSessions();
       });
 
       function useExample(text) {
@@ -226,10 +361,100 @@
         inputEl.focus();
       }
 
+      // Session management functions
+      async function createNewSession() {
+        try {
+          const res = await fetch("/chat/start", { method: "POST" });
+          const data = await res.json();
+          sessionId = data.session_id;
+          localStorage.setItem("chatSessionId", sessionId);
+          setSessionLabel();
+          await loadSessions();
+          await loadHistory();
+          // Close sidebar on mobile after selecting a session
+          if (window.innerWidth <= 1024) {
+            sidebar.classList.remove("visible");
+          }
+          return sessionId;
+        } catch (error) {
+          console.error("Error creating new session:", error);
+          alert("Failed to create a new session");
+        }
+      }
+
+      async function loadSessions() {
+        try {
+          const res = await fetch("/chat/sessions");
+          const data = await res.json();
+          
+          if (!data.sessions || data.sessions.length === 0) {
+            sessionList.innerHTML = '<div style="padding: 10px; color: var(--muted);">No sessions yet</div>';
+            return;
+          }
+
+          // Sort sessions by last_activity (newest first)
+          const sortedSessions = [...data.sessions].sort((a, b) => 
+            new Date(b.last_activity) - new Date(a.last_activity)
+          );
+
+          sessionList.innerHTML = sortedSessions.map(session => `
+            <li class="session-item ${session.id === sessionId ? 'active' : ''}" 
+                data-session-id="${session.id}">
+              <span>${session.title || 'Untitled'}</span>
+              <span class="session-time">${new Date(session.last_activity).toLocaleString()}</span>
+            </li>
+          `).join('');
+
+          // Add click handlers to session items
+          document.querySelectorAll('.session-item').forEach(item => {
+            item.addEventListener('click', async () => {
+              const clickedSessionId = item.getAttribute('data-session-id');
+              if (clickedSessionId !== sessionId) {
+                sessionId = clickedSessionId;
+                localStorage.setItem("chatSessionId", sessionId);
+                await loadHistory();
+                setSessionLabel();
+                
+                // Update active state
+                document.querySelectorAll('.session-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Close sidebar on mobile after selecting a session
+                if (window.innerWidth <= 1024) {
+                  sidebar.classList.remove("visible");
+                }
+              }
+            });
+          });
+        } catch (error) {
+          console.error("Error loading sessions:", error);
+          sessionList.innerHTML = '<div style="padding: 10px; color: var(--muted);">Error loading sessions</div>';
+        }
+      }
+
+      // Initialize the app
       (async function init() {
         await ensureSession();
         setSessionLabel();
+        await loadSessions();
         await loadHistory();
+        
+        // Set up new session button
+        newSessionBtn.addEventListener('click', createNewSession);
+        
+        // Handle window resize for sidebar
+        window.addEventListener('resize', () => {
+          if (window.innerWidth > 1024) {
+            sidebar.classList.add('visible');
+          } else {
+            sidebar.classList.remove('visible');
+          }
+        });
+        
+        // Initial sidebar state
+        if (window.innerWidth > 1024) {
+          sidebar.classList.add('visible');
+        }
       })();
     </script>
   </body>

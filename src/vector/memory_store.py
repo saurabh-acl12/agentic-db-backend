@@ -109,7 +109,34 @@ class ChatMemoryStore:
             )
 
         turns.sort(key=lambda t: t.get("created_at") or "", reverse=True)
-        return turns[:limit]
+        return turns[-limit:]  # Return most recent
+
+    def list_sessions(self) -> List[Dict[str, Any]]:
+        """
+        List all unique chat sessions with their most recent activity.
+        Returns a list of dicts with session_id and last_activity.
+        """
+        # Get all metadata to find unique sessions
+        all_metas = self.collection.get(include=["metadatas"]).get("metadatas", [])
+
+        # Track the most recent activity for each session
+        sessions = {}
+        for meta in all_metas:
+            if not meta or "session_id" not in meta:
+                continue
+
+            session_id = meta["session_id"]
+            created_at = meta.get("created_at", "")
+
+            # If we haven't seen this session or this is a more recent activity
+            if session_id not in sessions or created_at > sessions[session_id]["last_activity"]:
+                sessions[session_id] = {
+                    "id": session_id,
+                    "last_activity": created_at,
+                    "title": meta.get("question", "New Chat")  # Use first question as title
+                }
+
+        return list(sessions.values())
 
     def search_relevant(
         self, session_id: str, query: str, limit: int = 4

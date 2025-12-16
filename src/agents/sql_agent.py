@@ -50,15 +50,25 @@ def get_sql_agent(schema_description: str, llm: Optional[BaseLanguageModel] = No
 
     def process_question(question: str, history_context: str = ""):
         print("Entered process question")
-        import pdb; pdb.set_trace()
-        # STEP 1 – Intent validation
-        intent_response = llm.invoke(intent_prompt.format(question=question))
+        
+        # STEP 1 – Intent validation with context
+        intent_prompt_text = intent_prompt.format(question=question)
+        
+        # Include history context in the intent check for follow-up questions
+        if history_context:
+            intent_prompt_text += f"\n\n# CONVERSATION CONTEXT (for reference):\n{history_context}"
+        
+        intent_response = llm.invoke(intent_prompt_text)
         # Handle both string response (Ollama) and ChatMessage (Gemini)
         intent = (intent_response.content if hasattr(intent_response, 'content') 
                  else str(intent_response)).strip().upper()
 
+        # For follow-up questions, be more lenient with intent validation
         if not intent.startswith("YES"):
-            return {"error": "Invalid or unclear question. Please rephrase."}
+            if history_context:
+                print("Intent check failed but continuing because of conversation context")
+            else:
+                return {"error": "I'm not sure I understand. Could you please rephrase your question?"}
 
         # STEP 2 – Retrieve semantic RAG context (vector search from Qdrant)
         rag_context = retrieve_context(question)
